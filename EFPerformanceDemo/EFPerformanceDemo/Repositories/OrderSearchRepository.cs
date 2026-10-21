@@ -106,5 +106,37 @@ namespace EFPerformanceDemo.Repositories
             return (response, queryCount);
         }
 
+        public async Task<(List<OrderNPlusOneReadResult> Rows, int QueryCount)> GetOrdersByCategoryAsync(int categoryId)
+        {
+            // Set-based replacement for the N+1 read loop above: a single round-trip
+            // to dbo.sp_GetOrdersByCategory aggregates ItemCount/TotalAmount in SQL
+            // (LEFT JOIN OrderItems so zero-item orders are still included) instead of
+            // issuing one OrderItems query and one Customer query per order.
+            var connection = _context.Database.Connection;
+            var wasClosed = connection.State != ConnectionState.Open;
+
+            if (wasClosed)
+                await connection.OpenAsync();
+
+            try
+            {
+                var rows = await connection.QueryAsync<OrderNPlusOneReadResult>(
+                    "dbo.sp_GetOrdersByCategory",
+                    new { CategoryId = categoryId },
+                    commandType: CommandType.StoredProcedure);
+
+                var response = rows.ToList();
+
+                var queryCount = 1; // Single round-trip, replacing the former 1 + 2000 + 2000 = 4,001 SQL queries.
+
+                return (response, queryCount);
+            }
+            finally
+            {
+                if (wasClosed)
+                    await connection.CloseAsync();
+            }
+        }
+
     }
 }

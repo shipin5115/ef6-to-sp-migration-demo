@@ -308,7 +308,7 @@ namespace EFPerformanceDemo.Controllers
 
                     orders.Add(order);
                 }
-
+               
                 _context.Orders.AddRange(orders);
                 await _context.SaveChangesAsync(); // Flushes batch to DB
 
@@ -357,6 +357,27 @@ namespace EFPerformanceDemo.Controllers
             {
                 Method = "N+1 Read Queries Loop (2,000 Orders)",
                 TotalDatabaseQueriesExecuted = queryCount, // 1 + 2000 + 2000 = 4,001 SQL queries!
+                ResultCount = response.Count,
+                TimeTakenMs = watch.ElapsedMilliseconds,
+                TimeTakenSeconds = watch.Elapsed.TotalSeconds
+            });
+        }
+
+        [HttpGet("get-orders-by-category-sp")]
+        public async Task<IActionResult> GetOrdersByCategorySp([FromQuery] int categoryId)
+        {
+            var watch = Stopwatch.StartNew();
+
+            // Set-based replacement for the N+1 read loop: a single Dapper round-trip
+            // to dbo.sp_GetOrdersByCategory.
+            var (response, queryCount) = await _orderSearchRepository.GetOrdersByCategoryAsync(categoryId);
+
+            watch.Stop();
+
+            return Ok(new
+            {
+                Method = "Set-Based Query via Dapper (sp_GetOrdersByCategory)",
+                TotalDatabaseQueriesExecuted = queryCount, // 1 round-trip, replacing the former 4,001 SQL queries!
                 ResultCount = response.Count,
                 TimeTakenMs = watch.ElapsedMilliseconds,
                 TimeTakenSeconds = watch.Elapsed.TotalSeconds

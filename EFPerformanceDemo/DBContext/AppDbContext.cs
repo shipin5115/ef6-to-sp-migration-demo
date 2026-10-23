@@ -13,5 +13,9 @@ namespace EFPerformanceDemo.DBContext
         public DbSet<Order> Orders { get; set; } = null!;
         public DbSet<OrderItem> OrderItems { get; set; } = null!;
         public DbSet<OrderAuditLog> OrderAuditLogs { get; set; } = null!;
+
+        public DbSet<SecurityPrice> SecurityPrices { get; set; } = null!;
+        public DbSet<SecurityMaster> SecurityMasters { get; set; } = null!;
+        public DbSet<PortfolioSecurityTypeEntity> PortfolioSecurityTypes { get; set; } = null!;
     }
 }

@@ -25,12 +25,23 @@ namespace EFPerformanceDemo.DBContext
                 .Select(id => ((PortfolioSecurityType)id).ToString())
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+            // NOTE: The security-type filter is intentionally applied client-side (after
+            // materialization) rather than as `typeNames.Contains(sp.SecurityType)` inside
+            // the LINQ-to-Entities query below. EF6 translates a Contains() over a
+            // variable-length collection into a parameterized `IN (@p0, @p1, ..., @pN)`
+            // clause, and EF6's query-plan cache key includes that literal shape. Since
+            // callers invoke this method with differing numbers of securityTypeIds, every
+            // distinct count produces a brand-new cached query plan (both in EF6's
+            // internal view/compiled-query cache and in SQL Server's plan cache). Over
+            // time this causes unbounded plan-cache growth, increasing compilation
+            // overhead on each new shape until executions exceed the command timeout.
+            // Keeping the SQL predicate shape constant (independent of securityTypeIds
+            // count) avoids that cache bloat entirely.
             var query = from sp in context.SecurityPrices
                         join sm in context.SecurityMasters on sp.SecurityID equals sm.Id
                         where sp.DatasetId == datasetId
                            && sp.PriceDate >= startDate
                            && sp.PriceDate <= endDate
-                           && typeNames.Contains(sp.SecurityType)
                            && (securityId == -1 || sp.SecurityID == securityId)
                         select new SecurityPriceRangeResult
                         {
@@ -45,7 +56,10 @@ namespace EFPerformanceDemo.DBContext
                             SecurityData = sm
                         };
 
-            return query.ToList();
+            return query
+                .ToList();
+                //.Where(r => typeNames.Contains(r.SecurityType))
+                //.ToList();
         }
     }
 }

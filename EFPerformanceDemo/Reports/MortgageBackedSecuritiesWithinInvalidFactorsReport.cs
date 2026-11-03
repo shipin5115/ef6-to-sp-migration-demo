@@ -81,8 +81,8 @@ namespace EFPerformanceDemo.Reports
             // Latest (max) FactorPriceDate meets above conditions
             var factorPriceData = from sp in securityPrices
                                    join s in allSecurityPrices on sp.SecurityId equals s.SecurityID
-                                   where s.PriceDate <= sp.SecurityDate.PriceDate && factorRange >= 0
-                                      && SystemLimitFilter.CheckFactor(s.PriceDate, sp.SecurityDate.PriceDate, factorRange)
+                                   where /*s.PriceDate <= sp.SecurityDate.PriceDate && factorRange >= 0&& */
+                                    SystemLimitFilter.CheckFactor(s.PriceDate, sp.SecurityDate.PriceDate, factorRange)
                                    group s by new { SecurityID = sp.SecurityId, PriceDate = sp.SecurityDate.PriceDate } into gp
                                    select new
                                    {

@@ -21,6 +21,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddScoped(_ => new AppDbContext(connectionString));
 builder.Services.AddScoped<IOrderSearchRepository, OrderSearchRepository>();
+builder.Services.AddScoped<IMortgageFactorReportRepository, MortgageFactorReportRepository>();
 
 var app = builder.Build();
 
